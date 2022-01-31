@@ -8,7 +8,7 @@ var current_year = Utilities.formatDate(new Date(), "GMT+1", "yyyy");
 var current_month = Utilities.formatDate(new Date(), "GMT+1", "MM");
 var current_day = Utilities.formatDate(new Date(), "GMT+1", "dd");
 
-var currency = "€ "
+var currency = "€"
 
 var exact_date_culumn = "A";
 var category_column = "E";
@@ -44,6 +44,22 @@ function setWebhook() {
   var url = telegram_url + "/setWebhook?url=" + webapp_url;
   var response = UrlFetchApp.fetch(url);
   Logger.log(response.getContentText())
+}
+
+function sendImage(chat_id, img_url, caption) {
+
+  let data = {
+    method: "post",
+    payload: {
+      method: "sendPhoto",
+      chat_id: String(chat_id),
+      photo: String(img_url),
+      caption: String(caption),
+      parse_mode: 'HTML'
+    }
+  }
+  var response = UrlFetchApp.fetch(telegram_url + '/', data);
+  return response;
 }
 
 function sendMessage(chat_id, text, keyboard) {
@@ -90,10 +106,22 @@ function doPost(e) {
       return;
     }
 
+    var new_message = contents.message.text;
+
+    // If it is a command
+    if (new_message[0] == "/"){
+      switch (new_message)  {
+        case "/get_expenses_chart":
+            getExpensesChart();
+            break;
+        //default:
+        //    break;
+      }
+      return;
+    }
+
     var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
     var last_row_index = getLastRow(sheet, "A2:"+notes_column);
-
-    var new_message = contents.message.text;
 
     if ((last_row_index > 1) && (sheet.getRange(notes_column+last_row_index).isBlank())){
       sheet.getRange(notes_column+last_row_index).setValue(new_message);
@@ -147,4 +175,23 @@ function doPost(e) {
       sendMessage(chat_id, "⚠️ Category already set ⚠️");
     }
   }
+}
+
+function getExpensesChart(){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+
+  // Get chart and save it into your Drive
+  var chart = sheet.getCharts()[0];
+  var file = DriveApp.createFile(chart.getBlob());
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+  var file_url = "https://docs.google.com/uc?id=" + file.getId();
+
+  var caption = "💸💸 " + current_year + " expenses up to " + current_day + "/" + current_month + " 💸💸";
+
+  sendImage(personal_chat_id, file_url, caption);
+
+  Utilities.sleep(5000);
+  file.setTrashed(true);
+
 }
