@@ -10,7 +10,9 @@ var current_day = Utilities.formatDate(new Date(), "GMT+1", "dd");
 
 var currency = "€"
 
-var exact_date_culumn = "A";
+var exact_date_column = "A";
+var month_column = "B";
+var amount_column = "D";
 var category_column = "E";
 var notes_column = "F";
 
@@ -112,8 +114,14 @@ function doPost(e) {
     if (new_message[0] == "/"){
       switch (new_message)  {
         case "/get_expenses_chart":
-            getExpensesChart();
-            break;
+          getExpensesChart();
+          break;
+        case "/get_last_10_expenses":
+          getLastExpenses(10, "Last 10 expenses:");
+          break;
+        case "/get_month_expenses":
+          getMonthExpenses(current_month, "Current month expenses:");
+          break;
         //default:
         //    break;
       }
@@ -193,5 +201,63 @@ function getExpensesChart(){
 
   Utilities.sleep(5000);
   file.setTrashed(true);
+
+}
+
+function getLastExpenses(expenses_num, message_start){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+
+  var message = message_start + "\n\n";
+  var curr_row = getLastRow(sheet, "A2:"+notes_column);
+
+  while ((expenses_num > 0) && (curr_row > 2)){
+
+    var amount = sheet.getRange(amount_column+curr_row).getValue();
+    var note = sheet.getRange(notes_column+curr_row).getValue();
+
+    var emoji = "🟢";
+    if (amount < 0){
+      emoji = "🔴";
+    }
+
+    // Latest expenses are first
+    message += emoji + " " + amount + " " + note + "\n";
+    
+    expenses_num--;
+    curr_row--;
+  }
+
+  sendMessage(personal_chat_id, message);
+
+}
+
+function getMonthExpenses(month, message_start){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+
+  var message = message_start + "\n\n";
+  var curr_row = getLastRow(sheet, "A2:"+notes_column);
+  var month_curr_row = sheet.getRange(month_column+curr_row).getValue();
+
+  while ((month_curr_row == month) && (curr_row > 2)){
+    
+    var amount = sheet.getRange(amount_column+curr_row).getValue();
+    var note = sheet.getRange(notes_column+curr_row).getValue();
+
+    var emoji = "🟢";
+    if (amount < 0){
+      emoji = "🔴";
+    }
+
+    // Latest expenses are first
+    message += emoji + " " + amount + " " + note + "\n";
+    
+    curr_row--;
+    month_curr_row = sheet.getRange(month_column+curr_row).getValue();
+
+  }
+
+  sendMessage(personal_chat_id, message); 
 
 }
