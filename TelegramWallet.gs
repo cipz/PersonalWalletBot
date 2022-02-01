@@ -12,6 +12,7 @@ var currency = "€"
 
 var exact_date_column = "A";
 var month_column = "B";
+var day_column = "C";
 var amount_column = "D";
 var category_column = "E";
 var notes_column = "F";
@@ -116,11 +117,17 @@ function doPost(e) {
         case "/get_expenses_chart":
           getExpensesChart();
           break;
+        case "/get_last_10_incomes":
+          getLastTransactions(10, "Last 10 incomes:", "in");
+          break;
         case "/get_last_10_expenses":
-          getLastExpenses(10, "Last 10 expenses:");
+          getLastTransactions(10, "Last 10 expenses:", "ex");
+          break;
+        case "/get_month_incomes":
+          getMonthTransactions(current_month, "Current month incomes:", "in");
           break;
         case "/get_month_expenses":
-          getMonthExpenses(current_month, "Current month expenses:");
+          getMonthTransactions(current_month, "Current month expenses:", "ex");
           break;
         //default:
         //    break;
@@ -204,35 +211,37 @@ function getExpensesChart(){
 
 }
 
-function getLastExpenses(expenses_num, message_start){
+function getLastTransactions(transactions_num, message_start, transition_type){
 
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
 
   var message = message_start + "\n\n";
   var curr_row = getLastRow(sheet, "A2:"+notes_column);
 
-  while ((expenses_num > 0) && (curr_row > 2)){
+  // Latest expenses are first
+  while ((transactions_num > 0) && (curr_row > 2)){
 
     var amount = sheet.getRange(amount_column+curr_row).getValue();
     var note = sheet.getRange(notes_column+curr_row).getValue();
-
-    var emoji = "🟢";
-    if (amount < 0){
-      emoji = "🔴";
+    var month_curr_row = sheet.getRange(month_column+curr_row).getValue();
+    var day_curr_row = sheet.getRange(day_column+curr_row).getValue();
+    
+    if ((transition_type == "ex") && (amount < 0)){
+      message += "🔴 " + amount + " " + note + " (" + day_curr_row  + "/" + month_curr_row + ")\n";
+      transactions_num--;
+    }
+    if ((transition_type == "in") && (amount > 0)){
+      message += "🟢 " + amount + " " + note + " (" + day_curr_row  + "/" + month_curr_row + ")\n";
+      transactions_num--;
     }
 
-    // Latest expenses are first
-    message += emoji + " " + amount + " " + note + "\n";
-    
-    expenses_num--;
     curr_row--;
+
   }
-
-  sendMessage(personal_chat_id, message);
-
+  sendMessage(personal_chat_id, message); 
 }
 
-function getMonthExpenses(month, message_start){
+function getMonthTransactions(month, message_start, transition_type){
 
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
 
@@ -240,24 +249,23 @@ function getMonthExpenses(month, message_start){
   var curr_row = getLastRow(sheet, "A2:"+notes_column);
   var month_curr_row = sheet.getRange(month_column+curr_row).getValue();
 
+  // Latest expenses are first
   while ((month_curr_row == month) && (curr_row > 2)){
-    
+
     var amount = sheet.getRange(amount_column+curr_row).getValue();
     var note = sheet.getRange(notes_column+curr_row).getValue();
-
-    var emoji = "🟢";
-    if (amount < 0){
-      emoji = "🔴";
+    var day_curr_row = sheet.getRange(day_column+curr_row).getValue();
+    
+    if ((transition_type == "ex") && (amount < 0)){
+      message += "🔴 " + amount + " " + note + " (" + day_curr_row  + "/" + month_curr_row + ")\n";
+    }
+    if ((transition_type == "in") && (amount > 0)){
+      message += "🟢 " + amount + " " + note + " (" + day_curr_row  + "/" + month_curr_row + ")\n";
     }
 
-    // Latest expenses are first
-    message += emoji + " " + amount + " " + note + "\n";
-    
     curr_row--;
     month_curr_row = sheet.getRange(month_column+curr_row).getValue();
 
   }
-
   sendMessage(personal_chat_id, message); 
-
 }
