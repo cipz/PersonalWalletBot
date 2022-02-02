@@ -17,6 +17,11 @@ var amount_column = "D";
 var category_column = "E";
 var notes_column = "F";
 
+var recursive_schedule_column = "K";
+var recursive_amount_column = "L";
+var recursive_category_column = "M";
+var recursive_notes_column = "N";
+
 var inline_expense_categories_keyboard = {
   "inline_keyboard": [
     [{ "text": "💸 Bills", "callback_data": "ex Bills" }],
@@ -202,7 +207,7 @@ function getExpensesChart(){
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
   var file_url = "https://docs.google.com/uc?id=" + file.getId();
 
-  var caption = "💸💸 " + current_year + " expenses up to " + current_day + "/" + current_month + " 💸💸";
+  var caption = "💸 " + current_year + " expenses up to " + current_day + "/" + current_month + " 💸";
 
   sendImage(personal_chat_id, file_url, caption);
 
@@ -269,3 +274,27 @@ function getMonthTransactions(month, message_start, transition_type){
   }
   sendMessage(personal_chat_id, message); 
 }
+
+function getMonthBalance(current_month){}
+
+function appendRecursiveTransactions(){
+  
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+
+  var curr_transaction_row = getLastRow(sheet, recursive_schedule_column+"2:"+recursive_notes_column);
+
+  while (curr_transaction_row > 2){
+
+    var recursive_transaction_amount = sheet.getRange(recursive_amount_column+curr_row).getValue();
+    var recursive_transaction_category = sheet.getRange(recursive_category_column+curr_row).getValue();
+    var recursive_transaction_notes = sheet.getRange(recursive_notes_column+curr_row).getValue();
+
+    sheet.appendRow(["", current_month, current_day, currency + " " + recursive_transaction_amount, recursive_transaction_category, recursive_transaction_notes]);
+
+  }
+
+  sendMessage(personal_chat_id, "⏰ Correctly set recursive expenses");
+
+}
+
+function getRecursiveTransactions(){}
