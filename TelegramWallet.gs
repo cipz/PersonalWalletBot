@@ -16,6 +16,7 @@ var day_column = "C";
 var amount_column = "D";
 var category_column = "E";
 var notes_column = "F";
+var balance_column = "J";
 
 var recursive_schedule_column = "K";
 var recursive_amount_column = "L";
@@ -110,7 +111,7 @@ function doPost(e) {
     // Always check the id!
     var chat_id = contents.message.from.id;
     if (chat_id != personal_chat_id) {
-      Logger.log("Someone with chat_id " + chat_id + " tried to access the bot.");
+      sendMessage(personal_chat_id, "Someone with chat_id " + chat_id + " tried to access the bot.");
       return;
     }
 
@@ -134,6 +135,9 @@ function doPost(e) {
         case "/get_month_expenses":
           getMonthTransactions(current_month, "Current month expenses:", "ex");
           break;
+        case "/get_recursive_transactions":
+          getRecursiveTransactions();
+          break;
         //default:
         //    break;
       }
@@ -145,12 +149,13 @@ function doPost(e) {
 
     if ((last_row_index > 1) && (sheet.getRange(notes_column+last_row_index).isBlank())){
       sheet.getRange(notes_column+last_row_index).setValue(new_message);
-      sendMessage(chat_id, "All set chief! 👍🏻")
+      var balance = getMonthBalance(current_month);
+      sendMessage(chat_id, "👍🏻 All set chief!\n💰Current monthly balance: " + balance);
       return;
     }
 
     if (isNaN(new_message)) {
-      sendMessage(chat_id, "I didn't get that. What did you mean with '" + new_message + "'?");
+      sendMessage(chat_id, "🤔 I didn't get that. What did you mean with '" + new_message + "'?");
       return;
     }
 
@@ -173,7 +178,7 @@ function doPost(e) {
     // Always check the id!
     var chat_id = contents.callback_query.from.id;
     if (chat_id != personal_chat_id) {
-      Logger.log("Someone with chat_id " + chat_id + " tried to access the bot.");
+      sendMessage(personal_chat_id, "Someone with chat_id " + chat_id + " tried to access the bot.");
       return;
     }
 
@@ -275,7 +280,14 @@ function getMonthTransactions(month, message_start, transition_type){
   sendMessage(personal_chat_id, message); 
 }
 
-function getMonthBalance(current_month){}
+function getMonthBalance(month){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+  var exact_row = 2 + parseInt(month);
+
+  return sheet.getRange(balance_column+exact_row).getValue();
+
+}
 
 function appendRecursiveTransactions(){
   
@@ -285,11 +297,13 @@ function appendRecursiveTransactions(){
 
   while (curr_transaction_row > 2){
 
-    var recursive_transaction_amount = sheet.getRange(recursive_amount_column+curr_row).getValue();
-    var recursive_transaction_category = sheet.getRange(recursive_category_column+curr_row).getValue();
-    var recursive_transaction_notes = sheet.getRange(recursive_notes_column+curr_row).getValue();
+    var recursive_transaction_amount = sheet.getRange(recursive_amount_column+curr_transaction_row).getValue();
+    var recursive_transaction_category = sheet.getRange(recursive_category_column+curr_transaction_row).getValue();
+    var recursive_transaction_notes = sheet.getRange(recursive_notes_column+curr_transaction_row).getValue();
 
-    sheet.appendRow(["", current_month, current_day, currency + " " + recursive_transaction_amount, recursive_transaction_category, recursive_transaction_notes]);
+    curr_transaction_row--;
+
+    sheet.appendRow(["", current_month, current_day, currency + " " + String(recursive_transaction_amount).replace(".",","), recursive_transaction_category, recursive_transaction_notes]);
 
   }
 
@@ -297,4 +311,25 @@ function appendRecursiveTransactions(){
 
 }
 
-function getRecursiveTransactions(){}
+function getRecursiveTransactions(){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
+
+  var message = "Recursive monthly transactions: \n\n";
+  var curr_row = getLastRow(sheet, recursive_amount_column+2+":"+recursive_notes_column);
+  
+  // Latest expenses are first
+  while (curr_row > 2){
+
+    var amount = sheet.getRange(recursive_amount_column+curr_row).getValue();
+    var category = sheet.getRange(recursive_category_column+curr_row).getValue();
+    var note = sheet.getRange(recursive_notes_column+curr_row).getValue();
+    
+    message += (amount < 0) ? "🔴" : "🟢";
+    message += " " + amount + " " + note + " (" + category + ")\n";
+
+    curr_row--;
+
+  }
+  sendMessage(personal_chat_id, message); 
+}
