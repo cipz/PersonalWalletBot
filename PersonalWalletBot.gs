@@ -30,9 +30,9 @@ var inline_expense_categories_keyboard = {
     [{ "text": "🧦 Clothes", "callback_data": "ex Clothes" }],
     [{ "text": "📱 Communications", "callback_data": "ex Communications" }],
     [{ "text": "🍔 Eating out", "callback_data": "ex Eating out" }],
-    [{ "text": "🥕 Groceries", "callback_data": "ex Groceries" }],
     [{ "text": "🎥 Entertainment", "callback_data": "ex Entertainment" }],
     [{ "text": "🎁 Gifts", "callback_data": "ex Gifts" }],
+    [{ "text": "🥕 Groceries", "callback_data": "ex Groceries" }],
     [{ "text": "🏥 Health", "callback_data": "ex Health" }],
     [{ "text": "🏡 House", "callback_data": "ex House" }],
     [{ "text": "🏃 Sports", "callback_data": "ex Sports" }],
@@ -139,7 +139,7 @@ function doPost(e) {
           getRecursiveTransactions();
           break;
         //default:
-        //    break;
+        //  break;
       }
       return;
     }
@@ -186,7 +186,7 @@ function doPost(e) {
     var last_row_index = getLastRow(sheet, "A2:"+notes_column);
 
     var msg_preamble = contents.callback_query.data.split(" ")[0];
-    var message = contents.callback_query.data.split(" ")[1];
+    var message = contents.callback_query.data.split(" ").slice(1).toString().replace(",", " ");
 
     // If the note cell is empty, the user can still edit the category since he might have changed his mind
     if (sheet.getRange(notes_column+last_row_index).isBlank()){
@@ -197,7 +197,7 @@ function doPost(e) {
         sendMessage(chat_id, "Where did you get the money from? 🧐");
       }
     } else {
-      sendMessage(chat_id, "⚠️ Category already set ⚠️");
+      sendMessage(chat_id, "⚠️ Category already set");
     }
   }
 }
@@ -254,7 +254,6 @@ function getLastTransactions(transactions_num, message_start, transition_type){
 function getMonthTransactions(month, message_start, transition_type){
 
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
-
   var message = message_start + "\n\n";
   var curr_row = getLastRow(sheet, "A2:"+notes_column);
   var month_curr_row = sheet.getRange(month_column+curr_row).getValue();
@@ -285,14 +284,13 @@ function getMonthBalance(month){
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
   var exact_row = 2 + parseInt(month);
 
-  return sheet.getRange(balance_column+exact_row).getValue();
+  return sheet.getRange(balance_column+exact_row).getValue().toFixed(2);
 
 }
 
 function appendRecursiveTransactions(){
   
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
-
   var curr_transaction_row = getLastRow(sheet, recursive_schedule_column+"2:"+recursive_notes_column);
 
   while (curr_transaction_row > 2){
@@ -306,15 +304,12 @@ function appendRecursiveTransactions(){
     sheet.appendRow(["", current_month, current_day, currency + " " + String(recursive_transaction_amount).replace(".",","), recursive_transaction_category, recursive_transaction_notes]);
 
   }
-
   sendMessage(personal_chat_id, "⏰ Correctly set recursive expenses");
-
 }
 
 function getRecursiveTransactions(){
 
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
-
   var message = "Recursive monthly transactions: \n\n";
   var curr_row = getLastRow(sheet, recursive_amount_column+2+":"+recursive_notes_column);
   
