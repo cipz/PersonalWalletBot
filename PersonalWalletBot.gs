@@ -16,7 +16,10 @@ var day_column = "C";
 var amount_column = "D";
 var category_column = "E";
 var notes_column = "F";
-var balance_column = "J";
+
+var monthly_expenses_column = "H";
+var monthly_incomes_column = "I";
+var monthly_balance_column = "J";
 
 var recursive_schedule_column = "K";
 var recursive_amount_column = "L";
@@ -135,8 +138,14 @@ function doPost(e) {
         case "/get_month_expenses":
           getMonthTransactions(current_month, "Current month expenses:", "ex");
           break;
+        case "/get_month_balance":
+          sendMessage(personal_chat_id, getMonthBalance(current_month));
+          break;
+        case "/get_year_balance":
+          sendMessage(personal_chat_id, getYearBalance(current_year));
+          break;
         case "/get_recursive_transactions":
-          getRecursiveTransactions();
+          sendMessage(personal_chat_id, getRecursiveTransactions());
           break;
         //default:
         //  break;
@@ -284,7 +293,7 @@ function getMonthBalance(month){
   var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(current_year);
   var exact_row = 2 + parseInt(month);
 
-  return sheet.getRange(balance_column+exact_row).getValue().toFixed(2);
+  return sheet.getRange(monthly_balance_column+exact_row).getValue().toFixed(2);
 
 }
 
@@ -315,7 +324,6 @@ function getRecursiveTransactions(){
   
   // Latest expenses are first
   while (curr_row > 2){
-
     var amount = sheet.getRange(recursive_amount_column+curr_row).getValue();
     var category = sheet.getRange(recursive_category_column+curr_row).getValue();
     var note = sheet.getRange(recursive_notes_column+curr_row).getValue();
@@ -324,7 +332,18 @@ function getRecursiveTransactions(){
     message += " " + amount + " " + note + " (" + category + ")\n";
 
     curr_row--;
-
   }
-  sendMessage(personal_chat_id, message); 
+  return message;
+}
+
+function getYearBalance(year){
+
+  var sheet = SpreadsheetApp.openById(spreadheet_id).getSheetByName(year);
+  
+  message = year + " so far\n";
+  message += "🔴 Expenses: " + sheet.getRange(monthly_expenses_column+"15").getValue().toFixed(2) + "\n";
+  message += "🟢 Incomes: " + sheet.getRange(monthly_incomes_column+"15").getValue().toFixed(2) + "\n";
+  message += "🔵 Balance: " + sheet.getRange(monthly_balance_column+"15").getValue().toFixed(2);
+
+  return message;
 }
